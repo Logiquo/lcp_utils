@@ -1,0 +1,37 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+          xmlns:stCamera="http://ns.adobe.com/photoshop/1.0/camera-profile">
+  <rdf:Description rdf:about="">
+   <photoshop:CameraProfiles>
+    <rdf:Seq>
+     <rdf:li>
+      <rdf:Description
+       stCamera:Make="SONY"
+       stCamera:CameraPrettyName="Sony Test Camera"
+       stCamera:LensPrettyName="Nested Perspective Lens"
+       stCamera:ProfileName="Nested Perspective Profile"
+       stCamera:FocalLength="35"
+       stCamera:ApertureValue="2.970854"
+       stCamera:CameraRawProfile="True"
+       stCamera:FocusDistance="3">
+       <stCamera:PerspectiveModel>
+        <rdf:Description
+         stCamera:Version="2"
+         stCamera:ScaleFactor="1.005"
+         stCamera:RadialDistortParam1="-0.037552"
+         stCamera:RadialDistortParam2="0.0123"
+         stCamera:RadialDistortParam3="-0.0045">
+         <stCamera:VignetteModel
+          stCamera:VignetteModelParam1="-0.748281"
+          stCamera:VignetteModelParam2="0.506711"
+          stCamera:VignetteModelParam3="-0.349576"/>
+        </rdf:Description>
+       </stCamera:PerspectiveModel>
+      </rdf:Description>
+     </rdf:li>
+    </rdf:Seq>
+   </photoshop:CameraProfiles>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

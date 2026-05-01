@@ -9,15 +9,21 @@ description = "Utilities for Lens Correction Profile (LCP) workflows."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
-authors = [
-  { name = "logic" }
-]
+authors = [{ name = "logic" }]
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
 ]
-dependencies = []
+dependencies = [
+    "numpy",
+    "opencv-python==4.13.0.92",
+    "pillow==12.2.0",
+    "rawpy",
+]
+
+[project.scripts]
+lcp-utils = "lcp_utils.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["lcp_utils"]

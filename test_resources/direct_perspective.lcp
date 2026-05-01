@@ -1,0 +1,30 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+          xmlns:stCamera="http://ns.adobe.com/photoshop/1.0/camera-profile">
+  <rdf:Description rdf:about="">
+   <photoshop:CameraProfiles>
+    <rdf:Seq>
+     <rdf:li>
+      <rdf:Description
+       stCamera:Make="SONY"
+       stCamera:CameraPrettyName="Sony Test Camera"
+       stCamera:LensPrettyName="Direct Perspective Lens"
+       stCamera:ProfileName="Direct Perspective Profile"
+       stCamera:FocalLength="24"
+       stCamera:ApertureValue="6"
+       stCamera:CameraRawProfile="True"
+       stCamera:FocusDistance="10000">
+       <stCamera:PerspectiveModel
+        stCamera:Version="2"
+        stCamera:ScaleFactor="1.020306"
+        stCamera:RadialDistortParam1="-0.097634"
+        stCamera:RadialDistortParam2="0.067408"
+        stCamera:RadialDistortParam3="0.016026"/>
+      </rdf:Description>
+     </rdf:li>
+    </rdf:Seq>
+   </photoshop:CameraProfiles>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

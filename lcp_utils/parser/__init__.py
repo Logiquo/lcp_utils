@@ -1,5 +1,3 @@
-"""Utilities for Lens Correction Profile (LCP) workflows."""
-
 from lcp_utils.parser.lcp import (
     Fisheye,
     Perspective,
@@ -10,7 +8,6 @@ from lcp_utils.parser.lcp import (
 )
 
 __all__ = [
-    "__version__",
     "Fisheye",
     "Perspective",
     "Profile",
@@ -18,5 +15,3 @@ __all__ = [
     "dump",
     "load",
 ]
-
-__version__ = "0.1.0"
