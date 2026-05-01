@@ -1,0 +1,28 @@
+<x:xmpmeta xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:stCamera="http://ns.adobe.com/photoshop/1.0/camera-profile" xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF>
+  <rdf:Description rdf:about="">
+   <photoshop:CameraProfiles>
+    <rdf:Seq>
+     <rdf:li>
+      <rdf:Description stCamera:Author="Logique (lcp_utils)" stCamera:Make="SONY" stCamera:Model="ILCE-7CM2" stCamera:UniqueCameraModel="Sony ILCE-7CM2" stCamera:CameraPrettyName="ILCE-7CM2" stCamera:Lens="Viltrox 35mm F1.8 II FE" stCamera:LensID="Viltrox 35mm F1.8 II FE" stCamera:LensPrettyName="Viltrox AF 35mm F1.8 EVO" stCamera:ImageWidth="7008" stCamera:ImageLength="4672" stCamera:FocalLength="35" stCamera:ApertureValue="1.6959938131099" stCamera:CameraRawProfile="True" stCamera:FocusDistance="3" stCamera:SensorFormatFactor="1" stCamera:ProfileName="Logique (Viltrox AF 35mm F1.8 EVO, SONY)">
+       <stCamera:PerspectiveModel>
+        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="-0.119756849267155" stCamera:RadialDistortParam2="0.186530306085526" stCamera:ResidualMeanError="8.54643655786892e-05" stCamera:ResidualStandardDeviation="8.96714187046968e-05">
+         <stCamera:VignetteModel stCamera:VignetteModelParam1="-1.58583112668346" stCamera:ResidualMeanError="0.0254062017470866" />
+        </rdf:Description>
+       </stCamera:PerspectiveModel>
+      </rdf:Description>
+     </rdf:li>
+     <rdf:li>
+      <rdf:Description stCamera:Author="Logique (lcp_utils)" stCamera:Make="SONY" stCamera:Model="ILCE-7CM2" stCamera:UniqueCameraModel="Sony ILCE-7CM2" stCamera:CameraPrettyName="ILCE-7CM2" stCamera:Lens="Viltrox 35mm F1.8 II FE" stCamera:LensID="Viltrox 35mm F1.8 II FE" stCamera:LensPrettyName="Viltrox AF 35mm F1.8 EVO" stCamera:ImageWidth="7008" stCamera:ImageLength="4672" stCamera:FocalLength="35" stCamera:ApertureValue="2" stCamera:CameraRawProfile="True" stCamera:FocusDistance="3" stCamera:SensorFormatFactor="1" stCamera:ProfileName="Logique (Viltrox AF 35mm F1.8 EVO, SONY)">
+       <stCamera:PerspectiveModel>
+        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="-0.119756849267155" stCamera:RadialDistortParam2="0.186530306085526" stCamera:ResidualMeanError="8.54643655786892e-05" stCamera:ResidualStandardDeviation="8.96714187046968e-05">
+         <stCamera:VignetteModel stCamera:VignetteModelParam1="-1.53936446137374" stCamera:ResidualMeanError="0.02524018249651" />
+        </rdf:Description>
+       </stCamera:PerspectiveModel>
+      </rdf:Description>
+     </rdf:li>
+    </rdf:Seq>
+   </photoshop:CameraProfiles>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>
