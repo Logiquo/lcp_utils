@@ -1,3 +1,4 @@
+import random
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
@@ -32,13 +33,17 @@ def load_image(path: Path) -> Image.Image:
 def k_fold[T](
     items: Sequence[T],
     folds: int,
+    seed: int = 0,
 ) -> Iterator[tuple[list[T], list[T]]]:
     if len(items) < folds:
         raise ValueError(f"at least {folds} items are required for k-fold splitting")
 
+    shuffled = list(items)
+    random.Random(seed).shuffle(shuffled)
+
     for fold in range(folds):
-        validate_items = list(items[fold::folds])
+        validate_items = list(shuffled[fold::folds])
         train_items = [
-            item for index, item in enumerate(items) if index % folds != fold
+            item for index, item in enumerate(shuffled) if index % folds != fold
         ]
         yield train_items, validate_items
