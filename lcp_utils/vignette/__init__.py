@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 import numpy as np
-import numpy.typing as npt
 
 from lcp_utils.parser.lcp import Vignette
 from lcp_utils.utils import k_fold, list_images
@@ -22,7 +21,11 @@ class VignetteCalibration(ABC):
         pass
 
     @abstractmethod
-    def val(self, params: Vignette, indices: list[int]) -> npt.NDArray[np.float64]:
+    def val(
+        self,
+        params: Vignette,
+        indices: list[int],
+    ) -> tuple[np.ndarray, np.ndarray]:
         pass
 
 
@@ -44,12 +47,17 @@ def calibrate(path: Path, method: str) -> Vignette:
     scores = []
     for precision in range(4):
         val_errors = []
+        val_weights = []
         for train_indices, validate_indices in k_fold(indices, 5):
             params = calibration.fit(train_indices, precision)
-            val_errors.append(calibration.val(params, validate_indices))
+            errors, weights = calibration.val(params, validate_indices)
+            val_errors.append(errors)
+            val_weights.append(weights)
         val_errors = np.concatenate(val_errors)
-        mu = float(np.mean(val_errors))
-        sigma = float(np.std(val_errors, ddof=1))
+        val_weights = np.concatenate(val_weights)
+        mu = float(np.average(val_errors, weights=val_weights))
+        variance = float(np.average((val_errors - mu) ** 2, weights=val_weights))
+        sigma = float(np.sqrt(variance))
         scores.append((mu, precision))
         print(f"    Fitted with precision {precision}, μ {mu}, σ {sigma}")
 

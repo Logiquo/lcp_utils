@@ -12,7 +12,9 @@ from lcp_utils.parser.lcp import Vignette
 from lcp_utils.utils import load_image
 from lcp_utils.vignette import VignetteCalibration
 
-BIN_COUNT = 512
+MIN_BIN_COUNT = 32
+MAX_BIN_COUNT = 768
+PIXELS_PER_RADIAL_BIN = 16
 CENTER_RADIUS_FRACTION = 0.15
 BORDER_FRACTION = 0.01
 BLACK_MARGIN = 0.01
@@ -103,10 +105,15 @@ class UniformVignetteCalibration(VignetteCalibration):
             residual_mean_error=residual_mean,
         )
 
-    def val(self, params: Vignette, indices: list[int]) -> np.ndarray:
+    def val(
+        self,
+        params: Vignette,
+        indices: list[int],
+    ) -> tuple[np.ndarray, np.ndarray]:
         frames = [self._frames[index] for index in indices]
         r2 = np.concatenate([frame.r2 for frame in frames])
         brightness = np.concatenate([frame.brightness for frame in frames])
+        counts = np.concatenate([frame.counts for frame in frames])
 
         modeled = _brightness_model(
             r2,
@@ -124,7 +131,7 @@ class UniformVignetteCalibration(VignetteCalibration):
 
         corrected = brightness / modeled
         corrected /= np.median(corrected)
-        return np.abs(corrected - 1.0)
+        return np.abs(corrected - 1.0), counts
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -181,7 +188,7 @@ def _frame_bins(
     return _bin_samples(
         r2,
         brightness.astype(np.float64, copy=False),
-        bins=BIN_COUNT,
+        bins=_bin_count(width, height),
         min_bin_samples=MIN_BIN_SAMPLES,
     )
 
@@ -194,7 +201,31 @@ def _image_brightness(image: Image.Image) -> np.ndarray:
         scale = 1.0
 
     rgb = array.astype(np.float64, copy=False) / scale
+    # White balance each calibration frame independently before using green.
+    rgb = _white_balance(rgb)
     return rgb[:, :, 1]
+
+
+def _white_balance(rgb: np.ndarray) -> np.ndarray:
+    valid = np.all((rgb > BLACK_MARGIN) & (rgb < 1.0 - WHITE_MARGIN), axis=2)
+    if not np.any(valid):
+        return rgb
+
+    channel_medians = np.median(rgb[valid], axis=0)
+    if np.any(channel_medians <= 0):
+        return rgb
+
+    target = float(np.mean(channel_medians))
+    balanced = rgb * (target / channel_medians)
+    return np.clip(balanced, 0.0, 1.0)
+
+
+def _bin_count(width: int, height: int) -> int:
+    radial_pixels = math.hypot(width, height) / 2.0
+    return max(
+        MIN_BIN_COUNT,
+        min(MAX_BIN_COUNT, int(round(radial_pixels / PIXELS_PER_RADIAL_BIN))),
+    )
 
 
 def _border_mask(width: int, height: int, border_fraction: float) -> np.ndarray:
@@ -285,4 +316,4 @@ def _fit_polynomial(
 
 
 def _brightness_model(r2: np.ndarray, params: np.ndarray) -> np.ndarray:
-    return 1.0 + params[0] * r2
+    return 1.0 + params[0] * r2 + params[1] * r2**2 + params[2] * r2**3
