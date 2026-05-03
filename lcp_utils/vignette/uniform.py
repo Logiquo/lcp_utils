@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
-from PIL import Image
 import numpy as np
+from PIL import Image
+from tqdm import tqdm
 
 from lcp_utils.parser.lcp import Vignette
+from lcp_utils.utils import load_image
+from lcp_utils.vignette import VignetteCalibration
 
 BIN_COUNT = 512
 CENTER_RADIUS_FRACTION = 0.15
@@ -16,66 +20,111 @@ WHITE_MARGIN = 0.01
 MIN_BIN_SAMPLES = 1000
 
 
-def calibrate(images: list[Image.Image]) -> Vignette:
-    """Fit an LCP vignette model from uniform flat-field captures.
+class UniformVignetteCalibration(VignetteCalibration):
+    def __init__(self) -> None:
+        self._image_size: tuple[int, int] | None = None
+        self._image_x_center: float | None = None
+        self._image_y_center: float | None = None
+        self._frames: list[_FrameBins] = []
 
-    The fitter uses the green channel from RGB images as the flat-field signal.
-    It uses the image center and unit focal length as the internal radial coordinate
-    system, and emits only the polynomial parameters needed by the LCP vignette
-    model.
-    """
+    def process_images(self, images: list[Path]) -> None:
+        self._image_size = None
+        self._image_x_center = None
+        self._image_y_center = None
+        self._frames = []
 
-    if len(images) < 2:
-        raise ValueError("at least 2 flat-field images are required")
+        for index, image_path in enumerate(
+            tqdm(images, desc="Processing vignette images")
+        ):
+            image = load_image(image_path)
+            if self._image_size is None:
+                self._image_size = image.size
+                width, height = image.size
+                dmax = float(max(width, height))
+                self._image_x_center = width / (2.0 * dmax)
+                self._image_y_center = height / (2.0 * dmax)
+            elif image.size != self._image_size:
+                raise ValueError(
+                    f"image {index} has size {image.size}, expected "
+                    f"{self._image_size}"
+                )
 
-    width, height = images[0].size
-    dmax = float(max(width, height))
-    image_x_center = width / (2.0 * dmax)
-    image_y_center = height / (2.0 * dmax)
-
-    all_r2: list[np.ndarray] = []
-    all_brightness: list[np.ndarray] = []
-    all_counts: list[np.ndarray] = []
-    all_mad: list[np.ndarray] = []
-
-    for index, image in enumerate(images):
-        if image.size != (width, height):
-            raise ValueError(
-                f"image {index} has size {image.size}, expected {(width, height)}"
+            assert self._image_x_center is not None
+            assert self._image_y_center is not None
+            self._frames.append(
+                _frame_bins(
+                    image,
+                    index=index,
+                    image_x_center=self._image_x_center,
+                    image_y_center=self._image_y_center,
+                )
             )
-        frame = _frame_bins(
-            image,
-            index=index,
-            image_x_center=image_x_center,
-            image_y_center=image_y_center,
+
+        if self._image_size is None:
+            raise ValueError("at least 2 flat-field images are required")
+
+    def fit(self, indices: list[int], precision: int) -> Vignette:
+        if not isinstance(precision, int) or precision < 0:
+            raise ValueError("precision must be an integer from 0 to 3")
+        if precision > 3:
+            raise ValueError("precision must be an integer from 0 to 3")
+
+        if len(indices) < 2:
+            raise ValueError("at least 2 flat-field images are required")
+
+        frames = [self._frames[index] for index in indices]
+        r2 = np.concatenate([frame.r2 for frame in frames])
+        brightness = np.concatenate([frame.brightness for frame in frames])
+        counts = np.concatenate([frame.counts for frame in frames])
+        mad = np.concatenate([frame.mad for frame in frames])
+
+        if len(r2) < 4:
+            raise ValueError("not enough populated radial bins to fit vignette model")
+
+        if precision == 0:
+            residuals = brightness / np.median(brightness) - 1.0
+            residual_mean = float(np.average(np.abs(residuals), weights=counts))
+            return Vignette(param1=0.0, residual_mean_error=residual_mean)
+
+        params = _fit_polynomial(r2, brightness, counts, mad, precision)
+        modeled = _brightness_model(r2, params)
+        if np.any(modeled <= 0):
+            raise ValueError("fitted vignette model becomes non-positive")
+
+        corrected = brightness / modeled
+        corrected /= np.median(corrected)
+        residuals = corrected - 1.0
+        residual_mean = float(np.average(np.abs(residuals), weights=counts))
+
+        return Vignette(
+            param1=float(params[0]),
+            param2=float(params[1]) if precision >= 2 else None,
+            param3=float(params[2]) if precision >= 3 else None,
+            residual_mean_error=residual_mean,
         )
-        all_r2.append(frame.r2)
-        all_brightness.append(frame.brightness)
-        all_counts.append(frame.counts)
-        all_mad.append(frame.mad)
 
-    r2 = np.concatenate(all_r2)
-    brightness = np.concatenate(all_brightness)
-    counts = np.concatenate(all_counts)
-    mad = np.concatenate(all_mad)
+    def val(self, params: Vignette, indices: list[int]) -> np.ndarray:
+        frames = [self._frames[index] for index in indices]
+        r2 = np.concatenate([frame.r2 for frame in frames])
+        brightness = np.concatenate([frame.brightness for frame in frames])
 
-    if len(r2) < 4:
-        raise ValueError("not enough populated radial bins to fit vignette model")
+        modeled = _brightness_model(
+            r2,
+            np.asarray(
+                [
+                    params.param1,
+                    params.param2 or 0.0,
+                    params.param3 or 0.0,
+                ],
+                dtype=np.float64,
+            ),
+        )
+        if np.any(modeled <= 0):
+            raise ValueError("fitted vignette model becomes non-positive")
 
-    params = _fit_polynomial(r2, brightness, counts, mad)
-    modeled = _brightness_model(r2, params)
-    if np.any(modeled <= 0):
-        raise ValueError("fitted vignette model becomes non-positive")
-
-    corrected = brightness / modeled
-    corrected /= np.median(corrected)
-    residuals = corrected - 1.0
-    residual_mean = float(np.average(np.abs(residuals), weights=counts))
-
-    return Vignette(
-        param1=float(params[0]),
-        residual_mean_error=residual_mean,
-    )
+        corrected = brightness / modeled
+        corrected /= np.median(corrected)
+        return np.abs(corrected - 1.0)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -224,12 +273,15 @@ def _fit_polynomial(
     brightness: np.ndarray,
     counts: np.ndarray,
     mad: np.ndarray,
+    precision: int,
 ) -> np.ndarray:
-    a = r2[:, None]
+    a = np.column_stack([r2**order for order in range(1, precision + 1)])
     b = brightness - 1.0
     weights = np.sqrt(counts) / np.maximum(mad, 1e-4)
     params, _, _, _ = np.linalg.lstsq(a * weights[:, None], b * weights, rcond=None)
-    return np.asarray(params, dtype=np.float64)
+    padded = np.zeros(3, dtype=np.float64)
+    padded[: len(params)] = params
+    return padded
 
 
 def _brightness_model(r2: np.ndarray, params: np.ndarray) -> np.ndarray:
