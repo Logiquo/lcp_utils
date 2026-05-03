@@ -6,8 +6,8 @@
      <rdf:li>
       <rdf:Description stCamera:Author="Logique (lcp_utils)" stCamera:Make="SONY" stCamera:Model="ILCE-7CM2" stCamera:UniqueCameraModel="Sony ILCE-7CM2" stCamera:CameraPrettyName="ILCE-7CM2" stCamera:Lens="Viltrox 85mm F2.0 FE" stCamera:LensID="Viltrox 85mm F2.0 FE" stCamera:LensPrettyName="Viltrox AF 85mm F2.0 EVO" stCamera:ImageWidth="7008" stCamera:ImageLength="4672" stCamera:FocalLength="85" stCamera:ApertureValue="2" stCamera:CameraRawProfile="True" stCamera:FocusDistance="3" stCamera:SensorFormatFactor="1" stCamera:ProfileName="Logique (Viltrox AF 85mm F2.0 EVO, SONY)">
        <stCamera:PerspectiveModel>
-        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="0" stCamera:ResidualMeanError="0.000248714955996737" stCamera:ResidualStandardDeviation="0.000454189800707225">
-         <stCamera:VignetteModel stCamera:VignetteModelParam1="-1.33193523763419" stCamera:ResidualMeanError="0.0160299783923499" />
+        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="0.266839426304735" stCamera:ResidualMeanError="0.00027965520520231" stCamera:ResidualStandardDeviation="0.000479662826984298">
+         <stCamera:VignetteModel stCamera:VignetteModelParam1="-1.11529886396501" stCamera:ResidualMeanError="0.0183808552757217" />
         </rdf:Description>
        </stCamera:PerspectiveModel>
       </rdf:Description>
@@ -15,8 +15,17 @@
      <rdf:li>
       <rdf:Description stCamera:Author="Logique (lcp_utils)" stCamera:Make="SONY" stCamera:Model="ILCE-7CM2" stCamera:UniqueCameraModel="Sony ILCE-7CM2" stCamera:CameraPrettyName="ILCE-7CM2" stCamera:Lens="Viltrox 85mm F2.0 FE" stCamera:LensID="Viltrox 85mm F2.0 FE" stCamera:LensPrettyName="Viltrox AF 85mm F2.0 EVO" stCamera:ImageWidth="7008" stCamera:ImageLength="4672" stCamera:FocalLength="85" stCamera:ApertureValue="2.97085365434048" stCamera:CameraRawProfile="True" stCamera:FocusDistance="3" stCamera:SensorFormatFactor="1" stCamera:ProfileName="Logique (Viltrox AF 85mm F2.0 EVO, SONY)">
        <stCamera:PerspectiveModel>
-        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="0" stCamera:ResidualMeanError="0.000248714955996737" stCamera:ResidualStandardDeviation="0.000454189800707225">
-         <stCamera:VignetteModel stCamera:VignetteModelParam1="-0.86531083612342" stCamera:ResidualMeanError="0.0312916677416848" />
+        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="0.266839426304735" stCamera:ResidualMeanError="0.00027965520520231" stCamera:ResidualStandardDeviation="0.000479662826984298">
+         <stCamera:VignetteModel stCamera:VignetteModelParam1="-0.60115974483059" stCamera:ResidualMeanError="0.0384511113873249" />
+        </rdf:Description>
+       </stCamera:PerspectiveModel>
+      </rdf:Description>
+     </rdf:li>
+     <rdf:li>
+      <rdf:Description stCamera:Author="Logique (lcp_utils)" stCamera:Make="SONY" stCamera:Model="ILCE-7CM2" stCamera:UniqueCameraModel="Sony ILCE-7CM2" stCamera:CameraPrettyName="ILCE-7CM2" stCamera:Lens="Viltrox 85mm F2.0 FE" stCamera:LensID="Viltrox 85mm F2.0 FE" stCamera:LensPrettyName="Viltrox AF 85mm F2.0 EVO" stCamera:ImageWidth="7008" stCamera:ImageLength="4672" stCamera:FocalLength="85" stCamera:ApertureValue="4" stCamera:CameraRawProfile="True" stCamera:FocusDistance="3" stCamera:SensorFormatFactor="1" stCamera:ProfileName="Logique (Viltrox AF 85mm F2.0 EVO, SONY)">
+       <stCamera:PerspectiveModel>
+        <rdf:Description stCamera:Version="2" stCamera:RadialDistortParam1="0.266839426304735" stCamera:ResidualMeanError="0.00027965520520231" stCamera:ResidualStandardDeviation="0.000479662826984298">
+         <stCamera:VignetteModel stCamera:VignetteModelParam1="-0.279877564585903" stCamera:ResidualMeanError="0.0111408241947697" />
         </rdf:Description>
        </stCamera:PerspectiveModel>
       </rdf:Description>
