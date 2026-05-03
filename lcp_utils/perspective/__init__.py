@@ -52,4 +52,20 @@ def calibrate(path: Path, method: str) -> Perspective:
         scores.append((err, precision))
         print(f"    Fitted with precision {precision}, error {err}")
 
-    return calibration.fit(indices, min(scores)[1])
+    precision = _prompt_precision(min(scores)[1])
+    return calibration.fit(indices, precision)
+
+
+def _prompt_precision(default: int) -> int:
+    while True:
+        response = input(f"Select perspective precision [0-3] (default {default}): ")
+        if response.strip() == "":
+            return default
+        try:
+            precision = int(response)
+        except ValueError:
+            print("Please enter an integer from 0 to 3.")
+            continue
+        if 0 <= precision <= 3:
+            return precision
+        print("Please enter an integer from 0 to 3.")
