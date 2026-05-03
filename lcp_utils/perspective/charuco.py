@@ -5,6 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 from lcp_utils.parser.lcp import Perspective
 from lcp_utils.perspective import PerspecitveCalibration
@@ -29,7 +30,9 @@ class ChArUcoPerspecitveCalibration(PerspecitveCalibration):
         self._object_points = []
         self._image_points = []
 
-        for index, image_path in enumerate(images):
+        for index, image_path in enumerate(
+            tqdm(images, desc="Processing images")
+        ):
             image = load_image(image_path)
             if self._image_size is None:
                 self._image_size = image.size

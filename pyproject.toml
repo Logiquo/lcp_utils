@@ -20,6 +20,7 @@ dependencies = [
     "opencv-python==4.13.0.92",
     "pillow==12.2.0",
     "rawpy",
+    "tqdm",
 ]
 
 [project.scripts]
