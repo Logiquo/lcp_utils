@@ -48,11 +48,15 @@ def calibrate(path: Path, method: str) -> Vignette:
     for precision in range(4):
         val_errors = []
         val_weights = []
-        for train_indices, validate_indices in k_fold(indices, 5):
-            params = calibration.fit(train_indices, precision)
-            errors, weights = calibration.val(params, validate_indices)
-            val_errors.append(errors)
-            val_weights.append(weights)
+        try:
+            for train_indices, validate_indices in k_fold(indices, 5):
+                params = calibration.fit(train_indices, precision)
+                errors, weights = calibration.val(params, validate_indices)
+                val_errors.append(errors)
+                val_weights.append(weights)
+        except ValueError as exc:
+            print(f"    Fitted with precision {precision}, failed: {exc}")
+            continue
         val_errors = np.concatenate(val_errors)
         val_weights = np.concatenate(val_weights)
         mu = float(np.average(val_errors, weights=val_weights))
@@ -61,8 +65,16 @@ def calibrate(path: Path, method: str) -> Vignette:
         scores.append((mu, precision))
         print(f"    Fitted with precision {precision}, μ {mu}, σ {sigma}")
 
+    if not scores:
+        raise ValueError("no vignette precision produced a valid model")
+
     precision = _prompt_precision(min(scores)[1])
-    return calibration.fit(indices, precision)
+    while True:
+        try:
+            return calibration.fit(indices, precision)
+        except ValueError as exc:
+            print(f"Precision {precision} failed on the full dataset: {exc}")
+            precision = _prompt_precision(min(scores)[1])
 
 
 def _prompt_precision(default: int) -> int:
