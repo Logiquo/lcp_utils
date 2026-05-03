@@ -6,10 +6,9 @@ import math
 from pathlib import Path
 from typing import Any
 
+from lcp_utils import perspective, vignette
 from lcp_utils.calibrate import exif
-from lcp_utils.parser.lcp import Profile, Perspective, Vignette
-from lcp_utils import perspective
-from lcp_utils import vignette
+from lcp_utils.parser.lcp import Perspective, Profile, Vignette
 
 __all__ = ["calibrate"]
 
@@ -84,13 +83,15 @@ def calibrate(path: Path) -> list[Profile]:
         profile.aperture_value = float(2.0 * math.log2(float(calibration["fValue"])))
 
         if "Perspective" in calibration:
-            profile.perspective = persp_res[calibration["Perspective"]]
+            profile.perspective = copy.deepcopy(persp_res[calibration["Perspective"]])
         else:
             # This is a zero geometry correction profile as a placeholder
             profile.perspective = Perspective(radial_distort_param1=0.0)
 
         if "Vignette" in calibration and profile.perspective is not None:
-            profile.perspective.vignette = vigne_res[calibration["Vignette"]]
+            profile.perspective.vignette = copy.deepcopy(
+                vigne_res[calibration["Vignette"]]
+            )
 
         profiles.append(profile)
 
