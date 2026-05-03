@@ -19,8 +19,19 @@ def new_board(width: int, height: int) -> Image.Image:
     return Image.fromarray(image)
 
 
-def calibrate(images: list[Image.Image], width: int, height: int) -> Perspective:
+def calibrate(
+    images: list[Image.Image],
+    precision: int,
+    width: int,
+    height: int,
+) -> Perspective:
     """Estimate an LCP perspective model from ChArUco board images."""
+
+    if not isinstance(precision, int) or precision < 0 or precision > 3:
+        raise ValueError("precision must be an integer from 0 to 3")
+
+    if precision == 0:
+        return Perspective(radial_distort_param1=0.0)
 
     if not images:
         raise ValueError("at least one calibration image is required")
@@ -55,9 +66,11 @@ def calibrate(images: list[Image.Image], width: int, height: int) -> Perspective
 
     camera_matrix = cv2.initCameraMatrix2D(object_points, image_points, image_size)
     dist_coeffs = np.zeros((5, 1), dtype=np.float64)
-    flags = (
-        cv2.CALIB_ZERO_TANGENT_DIST | cv2.CALIB_FIX_K3 | cv2.CALIB_USE_INTRINSIC_GUESS
-    )
+    flags = cv2.CALIB_ZERO_TANGENT_DIST | cv2.CALIB_USE_INTRINSIC_GUESS
+    if precision < 2:
+        flags |= cv2.CALIB_FIX_K2
+    if precision < 3:
+        flags |= cv2.CALIB_FIX_K3
 
     (
         _,
@@ -87,14 +100,88 @@ def calibrate(images: list[Image.Image], width: int, height: int) -> Perspective
         dist_coeffs,
         dmax,
     )
-    k1, k2, _, _, _ = _distortion_coefficients(dist_coeffs)
+    k1, k2, _, _, k3 = _distortion_coefficients(dist_coeffs)
 
     return Perspective(
         radial_distort_param1=k1,
-        radial_distort_param2=k2,
+        radial_distort_param2=k2 if precision >= 2 else None,
+        radial_distort_param3=k3 if precision >= 3 else None,
         residual_mean_error=float(np.mean(residuals)),
         residual_standard_deviation=float(np.std(residuals)),
     )
+
+
+def validate(
+    params: Perspective, images: list[Image.Image], width: int, height: int
+) -> float:
+    if not images:
+        raise ValueError("at least one validation image is required")
+
+    board = _board(width, height)
+    image_size = images[0].size
+    object_points = []
+    image_points = []
+
+    for index, image in enumerate(images):
+        if image.size != image_size:
+            raise ValueError(
+                f"image {index} has size {image.size}, expected {image_size}"
+            )
+
+        charuco_corners, charuco_ids = _detect(board, image)
+        if charuco_corners is None or charuco_ids is None or len(charuco_ids) < 8:
+            continue
+
+        obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids)  # type: ignore
+        if obj_points is None or img_points is None or len(obj_points) < 8:
+            continue
+
+        object_points.append(np.asarray(obj_points, dtype=np.float32))
+        image_points.append(np.asarray(img_points, dtype=np.float32))
+
+    if not object_points:
+        raise ValueError(
+            "at least one image with 8 or more ChArUco corners is required"
+        )
+
+    camera_matrix = cv2.initCameraMatrix2D(object_points, image_points, image_size)
+    dist_coeffs = _distortion_array(params)
+    flags = (
+        cv2.CALIB_ZERO_TANGENT_DIST
+        | cv2.CALIB_USE_INTRINSIC_GUESS
+        | cv2.CALIB_FIX_K1
+        | cv2.CALIB_FIX_K2
+        | cv2.CALIB_FIX_K3
+    )
+
+    (
+        _,
+        camera_matrix,
+        dist_coeffs,
+        rvecs,
+        tvecs,
+        _,
+        _,
+        _,
+    ) = cv2.calibrateCameraExtended(
+        object_points,
+        image_points,
+        image_size,
+        camera_matrix,
+        dist_coeffs,
+        flags=flags,
+    )
+
+    residuals = _relative_residuals(
+        object_points,
+        image_points,
+        rvecs,  # type: ignore
+        tvecs,  # type: ignore
+        camera_matrix,
+        dist_coeffs,
+        float(max(image_size)),
+    )
+    return float(np.mean(residuals))
 
 
 def _board(width: int, height: int) -> cv2.aruco.CharucoBoard:
@@ -138,6 +225,19 @@ def _distortion_coefficients(dist_coeffs: np.ndarray) -> tuple[float, ...]:
     padded = np.zeros(5, dtype=np.float64)
     padded[: min(len(coefficients), len(padded))] = coefficients[: len(padded)]
     return tuple(float(value) for value in padded)
+
+
+def _distortion_array(params: Perspective) -> np.ndarray:
+    return np.asarray(
+        [
+            params.radial_distort_param1,
+            params.radial_distort_param2 or 0.0,
+            0.0,
+            0.0,
+            params.radial_distort_param3 or 0.0,
+        ],
+        dtype=np.float64,
+    ).reshape(5, 1)
 
 
 def _relative_residuals(

@@ -1,4 +1,6 @@
+from collections.abc import Iterator, Sequence
 from pathlib import Path
+
 import rawpy
 from PIL import Image
 
@@ -25,3 +27,18 @@ def load_image(path: Path) -> Image.Image:
 
     with Image.open(path) as image:
         return image.convert("RGB")
+
+
+def k_fold[T](
+    items: Sequence[T],
+    folds: int,
+) -> Iterator[tuple[list[T], list[T]]]:
+    if len(items) < folds:
+        raise ValueError(f"at least {folds} items are required for k-fold splitting")
+
+    for fold in range(folds):
+        validate_items = list(items[fold::folds])
+        train_items = [
+            item for index, item in enumerate(items) if index % folds != fold
+        ]
+        yield train_items, validate_items
