@@ -87,7 +87,7 @@ class ChArUcoPerspecitveCalibration(PerspecitveCalibration):
             residual_standard_deviation=float(np.std(residuals)),
         )
 
-    def val(self, params: Perspective, indices: list[int]) -> float:
+    def val(self, params: Perspective, indices: list[int]) -> np.ndarray:
         image_size, object_points, image_points = self._points_for_indices(indices)
         if not object_points:
             raise ValueError(
@@ -133,7 +133,7 @@ class ChArUcoPerspecitveCalibration(PerspecitveCalibration):
             dist_coeffs,
             float(max(image_size)),
         )
-        return float(np.mean(residuals))
+        return residuals
 
     def _points_for_indices(
         self,

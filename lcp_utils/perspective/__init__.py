@@ -4,6 +4,9 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import numpy as np
+import numpy.typing as npt
+
 from lcp_utils.parser.lcp import Perspective
 from lcp_utils.utils import k_fold, list_images
 
@@ -20,7 +23,7 @@ class PerspecitveCalibration(ABC):
         pass
 
     @abstractmethod
-    def val(self, params: Perspective, indices: list[int]) -> float:
+    def val(self, params: Perspective, indices: list[int]) -> npt.NDArray[np.float64]:
         pass
 
 
@@ -44,13 +47,15 @@ def calibrate(path: Path, method: str) -> Perspective:
 
     scores = []
     for precision in range(4):
-        fold_errors = []
+        val_errors = []
         for train_indices, validate_indices in k_fold(indices, 5):
             params = calibration.fit(train_indices, precision)
-            fold_errors.append(calibration.val(params, validate_indices))
-        err = sum(fold_errors) / len(fold_errors)
-        scores.append((err, precision))
-        print(f"    Fitted with precision {precision}, error {err}")
+            val_errors.append(calibration.val(params, validate_indices))
+        val_errors = np.concatenate(val_errors)
+        mu = float(np.mean(val_errors))
+        sigma = float(np.std(val_errors, ddof=1))
+        scores.append((mu, precision))
+        print(f"    Fitted with precision {precision}, μ {mu}, σ {sigma}")
 
     precision = _prompt_precision(min(scores)[1])
     return calibration.fit(indices, precision)
