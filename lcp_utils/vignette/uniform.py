@@ -2,41 +2,33 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
 
+from PIL import Image
 import numpy as np
 
 from lcp_utils.parser.lcp import Vignette
 
-RAW_SUFFIXES = {".arw", ".dng", ".nef", ".cr2", ".cr3", ".raf", ".rw2"}
 BIN_COUNT = 512
 CENTER_RADIUS_FRACTION = 0.15
 BORDER_FRACTION = 0.01
-BLACK_MARGIN = 32.0
-WHITE_MARGIN = 128.0
+BLACK_MARGIN = 0.01
+WHITE_MARGIN = 0.01
 MIN_BIN_SAMPLES = 1000
 
 
-def calibrate(path: str | Path) -> Vignette:
-    """Fit an LCP vignette model from uniform raw flat-field captures.
+def calibrate(images: list[Image.Image]) -> Vignette:
+    """Fit an LCP vignette model from uniform flat-field captures.
 
-    The fitter works on linear raw CFA data and uses green samples by default.
-    It uses the image center and unit focal length as the internal radial
-    coordinate system, and emits only the polynomial parameters needed by the
-    LCP vignette model.
+    The fitter uses the green channel from RGB images as the flat-field signal.
+    It uses the image center and unit focal length as the internal radial coordinate
+    system, and emits only the polynomial parameters needed by the LCP vignette
+    model.
     """
 
-    folder = Path(path)
-    raw_paths = _raw_paths(folder)
-    if not raw_paths:
-        raise ValueError(f"no supported raw files found in {folder}")
-    if len(raw_paths) < 2:
-        raise ValueError("at least 2 flat-field raw files are required")
+    if len(images) < 2:
+        raise ValueError("at least 2 flat-field images are required")
 
-    first = _raw_info(raw_paths[0])
-    width = first.width
-    height = first.height
+    width, height = images[0].size
     dmax = float(max(width, height))
     image_x_center = width / (2.0 * dmax)
     image_y_center = height / (2.0 * dmax)
@@ -46,11 +38,14 @@ def calibrate(path: str | Path) -> Vignette:
     all_counts: list[np.ndarray] = []
     all_mad: list[np.ndarray] = []
 
-    for raw_path in raw_paths:
+    for index, image in enumerate(images):
+        if image.size != (width, height):
+            raise ValueError(
+                f"image {index} has size {image.size}, expected {(width, height)}"
+            )
         frame = _frame_bins(
-            raw_path,
-            width=width,
-            height=height,
+            image,
+            index=index,
             image_x_center=image_x_center,
             image_y_center=image_y_center,
         )
@@ -84,12 +79,6 @@ def calibrate(path: str | Path) -> Vignette:
 
 
 @dataclass(frozen=True, kw_only=True)
-class _RawInfo:
-    width: int
-    height: int
-
-
-@dataclass(frozen=True, kw_only=True)
 class _FrameBins:
     r2: np.ndarray
     brightness: np.ndarray
@@ -97,60 +86,25 @@ class _FrameBins:
     mad: np.ndarray
 
 
-def _raw_paths(folder: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in folder.iterdir()
-        if path.is_file() and path.suffix.lower() in RAW_SUFFIXES
-    )
-
-
-def _raw_info(path: Path) -> _RawInfo:
-    rawpy = _rawpy()
-    with rawpy.imread(str(path)) as raw:
-        array = raw.raw_image_visible
-        return _RawInfo(width=int(array.shape[1]), height=int(array.shape[0]))
-
-
 def _frame_bins(
-    path: Path,
+    image: Image.Image,
     *,
-    width: int,
-    height: int,
+    index: int,
     image_x_center: float,
     image_y_center: float,
 ) -> _FrameBins:
-    rawpy = _rawpy()
-    with rawpy.imread(str(path)) as raw:
-        raw_image = np.asarray(raw.raw_image_visible, dtype=np.float32)
-        if raw_image.shape != (height, width):
-            raise ValueError(
-                f"{path.name} has size {raw_image.shape[::-1]}, "
-                f"expected {(width, height)}"
-            )
+    brightness = _image_brightness(image)
+    height, width = brightness.shape
 
-        colors = _raw_colors(raw)
-        black_levels = np.asarray(raw.black_level_per_channel, dtype=np.float32)
-        white_level = float(raw.white_level)
-        green_ids = _green_color_ids(raw)
-
-    if colors.shape != raw_image.shape:
-        raise ValueError(f"raw color map for {path.name} has unexpected shape")
-
-    black = black_levels[np.clip(colors, 0, len(black_levels) - 1)]
-    saturated = raw_image >= white_level - WHITE_MARGIN
-    valid = (raw_image > black + BLACK_MARGIN) & ~saturated
-    valid &= np.isin(colors, green_ids)
+    valid = (brightness > BLACK_MARGIN) & (brightness < 1.0 - WHITE_MARGIN)
     valid &= _border_mask(width, height, BORDER_FRACTION)
 
     valid_count = int(np.count_nonzero(valid))
     if valid_count == 0:
-        raise ValueError(f"{path.name} has no valid green flat-field pixels")
+        raise ValueError(f"image {index} has no valid flat-field pixels")
 
     ys, xs = np.nonzero(valid)
-    channel_black = black[ys, xs]
-    headroom = np.maximum(1.0, white_level - channel_black)
-    brightness = (raw_image[ys, xs] - channel_black) / headroom
+    brightness = brightness[ys, xs]
 
     dmax = float(max(width, height))
     u = xs.astype(np.float64) + 0.5
@@ -161,11 +115,11 @@ def _frame_bins(
     center_radius = CENTER_RADIUS_FRACTION * math.hypot(width, height)
     center_values = brightness[radius_pixels <= center_radius]
     if len(center_values) < MIN_BIN_SAMPLES:
-        raise ValueError(f"{path.name} has too few valid central pixels")
+        raise ValueError(f"image {index} has too few valid central pixels")
 
     center_brightness = float(np.median(center_values))
     if center_brightness <= 0:
-        raise ValueError(f"{path.name} has non-positive central brightness")
+        raise ValueError(f"image {index} has non-positive central brightness")
     brightness = brightness / center_brightness
 
     r2 = _r2_coordinates(
@@ -183,26 +137,15 @@ def _frame_bins(
     )
 
 
-def _raw_colors(raw: Any) -> np.ndarray:
-    colors = getattr(raw, "raw_colors_visible", None)
-    if colors is not None:
-        return np.asarray(colors, dtype=np.int16)
+def _image_brightness(image: Image.Image) -> np.ndarray:
+    array = np.asarray(image.convert("RGB"))
+    if np.issubdtype(array.dtype, np.integer):
+        scale = float(np.iinfo(array.dtype).max)
+    else:
+        scale = 1.0
 
-    pattern = np.asarray(raw.raw_pattern, dtype=np.int16)
-    height, width = raw.raw_image_visible.shape
-    tiled = np.tile(
-        pattern,
-        (math.ceil(height / pattern.shape[0]), math.ceil(width / pattern.shape[1])),
-    )
-    return tiled[:height, :width]
-
-
-def _green_color_ids(raw: Any) -> np.ndarray:
-    color_desc = bytes(raw.color_desc).decode("ascii", "ignore")
-    green_ids = [index for index, name in enumerate(color_desc) if name == "G"]
-    if not green_ids:
-        raise ValueError("raw file does not expose green CFA channels")
-    return np.asarray(green_ids, dtype=np.int16)
+    rgb = array.astype(np.float64, copy=False) / scale
+    return rgb[:, :, 1]
 
 
 def _border_mask(width: int, height: int, border_fraction: float) -> np.ndarray:
@@ -291,13 +234,3 @@ def _fit_polynomial(
 
 def _brightness_model(r2: np.ndarray, params: np.ndarray) -> np.ndarray:
     return 1.0 + params[0] * r2
-
-
-def _rawpy() -> Any:
-    try:
-        import rawpy
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "rawpy is required for uniform vignette calibration"
-        ) from exc
-    return rawpy

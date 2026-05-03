@@ -1,4 +1,3 @@
-import json
 import math
 import struct
 from pathlib import Path
@@ -7,20 +6,14 @@ from typing import Any
 from lcp_utils.parser.lcp import Profile
 
 
-def metadata(path: Path) -> Profile:
+def profile_prototype(image_path: Path, overrides: dict[str, Any]) -> Profile:
     """Build profile metadata from ``metadata.json`` and a sibling raw file.
 
     Values in ``metadata.json`` override EXIF values.  The JSON may use either
     LCP-style names such as ``LensPrettyName`` or dataclass field names such as
     ``lens_pretty_name``.
     """
-
-    with open(path / "metadata.json", encoding="utf-8") as f:
-        overrides = json.load(f)
-    if not isinstance(overrides, dict):
-        raise ValueError("metadata.json must contain a JSON object")
-
-    exif = _read_exif(path)
+    exif = _read_exif(image_path)
     image_width = overrides.get("ImageWidth") or exif.get("ImageWidth")
     image_length = overrides.get("ImageLength") or exif.get("ImageLength")
     sensor_format_factor = overrides.get("SensorFormatFactor")
@@ -125,25 +118,7 @@ _TAGS = {
 }
 
 
-def _read_exif(path: Path) -> dict[str, Any]:
-    image_path = None
-    for suffix in (".ARW", ".arw", ".DNG", ".dng", ".NEF", ".nef", ".CR3", ".cr3"):
-        candidate = path / f"metadata{suffix}"
-        if candidate.exists():
-            image_path = candidate
-            break
-
-    if image_path is None:
-        candidates = [
-            item
-            for item in path.iterdir()
-            if item.is_file() and item.name != "metadata.json"
-        ]
-        if len(candidates) == 1:
-            image_path = candidates[0]
-        else:
-            raise FileNotFoundError(f"no metadata raw file found in {path}")
-
+def _read_exif(image_path: Path) -> dict[str, Any]:
     data = image_path.read_bytes()
     if len(data) < 8 or data[:2] not in {b"II", b"MM"}:
         return {}

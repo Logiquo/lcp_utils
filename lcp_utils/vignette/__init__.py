@@ -1,26 +1,17 @@
 from __future__ import annotations
 
-import json
+import re
 from pathlib import Path
 
 from lcp_utils.parser.lcp import Vignette
-from lcp_utils.vignette.uniform import calibrate
+from lcp_utils.vignette import uniform
+from lcp_utils.utils import load_image, list_images
 
-__all__ = ["calibrate", "vignette"]
+__all__ = ["calibrate"]
 
 
-def vignette(path: Path) -> Vignette:
-    settings_path = path / "metadata.json"
-    if settings_path.exists():
-        with open(settings_path, encoding="utf-8") as f:
-            settings = json.load(f)
-    else:
-        settings = {}
-
-    method = settings.get("method")
-    if method is None:
-        raise ValueError("metadata.json must define method, e.g. uniform")
-    if str(method).lower() != "uniform":
-        raise ValueError(f"unsupported vignette calibration method: {method}")
-
-    return calibrate(path)
+def calibrate(path: Path, method: str) -> Vignette:
+    if method == "uniform":
+        images = [load_image(image_path) for image_path in list_images(path)]
+        return uniform.calibrate(images)
+    raise ValueError(f"unsupported perspective calibration method: {method}")

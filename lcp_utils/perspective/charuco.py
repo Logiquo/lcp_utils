@@ -19,7 +19,7 @@ def new_board(width: int, height: int) -> Image.Image:
     return Image.fromarray(image)
 
 
-def calibrate(width: int, height: int, images: list[Image.Image]) -> Perspective:
+def calibrate(images: list[Image.Image], width: int, height: int) -> Perspective:
     """Estimate an LCP perspective model from ChArUco board images."""
 
     if not images:
@@ -40,7 +40,7 @@ def calibrate(width: int, height: int, images: list[Image.Image]) -> Perspective
         if charuco_corners is None or charuco_ids is None or len(charuco_ids) < 8:
             continue
 
-        obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids) # type: ignore
+        obj_points, img_points = board.matchImagePoints(charuco_corners, charuco_ids)  # type: ignore
         if obj_points is None or img_points is None or len(obj_points) < 8:
             continue
 
@@ -56,9 +56,7 @@ def calibrate(width: int, height: int, images: list[Image.Image]) -> Perspective
     camera_matrix = cv2.initCameraMatrix2D(object_points, image_points, image_size)
     dist_coeffs = np.zeros((5, 1), dtype=np.float64)
     flags = (
-        cv2.CALIB_ZERO_TANGENT_DIST
-        | cv2.CALIB_FIX_K3
-        | cv2.CALIB_USE_INTRINSIC_GUESS
+        cv2.CALIB_ZERO_TANGENT_DIST | cv2.CALIB_FIX_K3 | cv2.CALIB_USE_INTRINSIC_GUESS
     )
 
     (
@@ -83,8 +81,8 @@ def calibrate(width: int, height: int, images: list[Image.Image]) -> Perspective
     residuals = _relative_residuals(
         object_points,
         image_points,
-        rvecs, # type: ignore
-        tvecs, # type: ignore
+        rvecs,  # type: ignore
+        tvecs,  # type: ignore
         camera_matrix,
         dist_coeffs,
         dmax,
@@ -122,11 +120,11 @@ def _detect(
         return charuco_corners, charuco_ids
 
     dictionary = board.getDictionary()
-    marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray, dictionary) # type: ignore
+    marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray, dictionary)  # type: ignore
     if marker_ids is None or len(marker_ids) == 0:
         return None, None
 
-    _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco( # type: ignore
+    _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(  # type: ignore
         marker_corners,
         marker_ids,
         gray,
